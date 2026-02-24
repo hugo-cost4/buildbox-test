@@ -55,35 +55,54 @@ async def list_countries(search: Optional[str] = Query(None)):
     return await get_countries_service(search)
 
 def run_server():
+    import socket
+    
+    # Checa se a porta já está em uso (o servidor já está rodando de uma execução anterior da célula)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex(('127.0.0.1', 8000))
+    sock.close()
+    
+    if result == 0:
+        print("Server is already running in background: http://127.0.0.1:8000")
+        return
+        
+    print("Starting server in background: http://127.0.0.1:8000")
     uvicorn.run(app, host="127.0.0.1", port=8000, log_level="error")
 
 thread = threading.Thread(target=run_server)
 thread.daemon = True
 thread.start()
 
-print("Servidor rodando em plano de fundo: http://127.0.0.1:8000")
-
 async def test_api():
     await asyncio.sleep(1)
     
     async with httpx.AsyncClient() as client:
-        print("\n--- Testando GET /countries ---")
+        print("\n--- Testing GET /countries ---")
         response = await client.get("http://127.0.0.1:8000/countries")
         print("Status:", response.status_code)
         
         if response.status_code == 200:
             data = response.json()
-            print("Total retornado:", len(data))
-            print("Exemplo:")
+            print("Total returned:", len(data))
+            print("Example:")
             print(data[:2])
         else:
-            print("Erro:", response.text)
+            print("Error:", response.text)
             
-        print("\n--- Testando GET /countries?search=brazil ---")
+        print("\n--- Testing GET /countries?search=brazil ---")
         search_response = await client.get("http://127.0.0.1:8000/countries?search=brazil")
-        print("Status Busca Brasil:", search_response.status_code)
+        print("Status:", search_response.status_code)
+        
         if search_response.status_code == 200:
-            print("Exemplo Busca Brasil:", search_response.json())
-
-# Executa o teste dentro do jupyter/colab de forma nativa
-# Em um notebook Colab de verdade, rodaríamos: await test_api()
+            data = search_response.json()
+            print(f"Total returned: {len(data)}")
+            if len(data) > 0:
+                import json
+                print("Example:")
+                print(json.dumps(data[:2], indent=2))
+            else:
+                print("No countries found with this term.")
+        else:
+            print("Error searching:", search_response.text)
+                
+await test_api()
