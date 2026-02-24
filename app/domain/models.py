@@ -12,4 +12,4 @@ class Country(BaseModel):
 
     @computed_field
     def is_long_name(self) -> bool:
-        return len(self.name) > 15
+        return len(self.name) > 25
